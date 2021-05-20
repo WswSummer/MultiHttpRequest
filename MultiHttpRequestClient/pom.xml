@@ -9,9 +9,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.wsw</groupId>
-    <artifactId>multihttprequest</artifactId>
+    <artifactId>multihttprequestclient</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>multihttprequest</name>
+    <name>multihttprequestclient</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>

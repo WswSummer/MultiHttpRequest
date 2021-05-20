@@ -1,10 +1,10 @@
-package com.wsw.multihttprequest;
+package com.wsw.multihttprequestclient;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MultihttprequestApplicationTests {
+class MultihttprequestclientApplicationTests {
 
     @Test
     void contextLoads() {

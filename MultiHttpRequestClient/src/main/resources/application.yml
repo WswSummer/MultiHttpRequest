@@ -1,0 +1,3 @@
+post:
+  request:
+    url: localhost:1998/wsw/hello

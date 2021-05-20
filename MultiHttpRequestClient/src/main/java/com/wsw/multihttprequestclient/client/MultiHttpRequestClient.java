@@ -1,4 +1,4 @@
-package com.wsw.multihttprequest.client;
+package com.wsw.multihttprequestclient.client;
 
 /**
  * @Author WangSongWen

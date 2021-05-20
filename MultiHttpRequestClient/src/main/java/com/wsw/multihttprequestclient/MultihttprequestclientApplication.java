@@ -1,13 +1,13 @@
-package com.wsw.multihttprequest;
+package com.wsw.multihttprequestclient;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MultihttprequestApplication {
+public class MultihttprequestclientApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(MultihttprequestApplication.class, args);
+        SpringApplication.run(MultihttprequestclientApplication.class, args);
     }
 
 }
