@@ -1,23 +1,23 @@
 package com.wsw.multihttprequestclient.client;
 
-import com.alibaba.fastjson.JSON;
-import org.apache.commons.collections4.MapUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @Author WangSongWen
  * @Date: Created in 16:07 2021/5/20
  * @Description: 客户端---并行且异步发送n个Http Post请求
  */
+@Slf4j
 @Component
 public class MultiHttpRequestClient {
     @Value("${post.request.url}")
@@ -26,35 +26,38 @@ public class MultiHttpRequestClient {
     @Resource
     private RestTemplate restTemplate;
 
-    @Async("requestThreadPool")
-    public void asyncSendPostRequest() throws Exception {
-        for (int i = 0; i < 10; i++) {
-            ResponseEntity<String> responseEntity = postRequest(i);
-            System.out.println(responseEntity);
+    public void asyncSendPostRequest() {
+        ExecutorService threadPool = Executors.newFixedThreadPool(5);
+        for (int i = 0; i < 5; i++) {
+            int finalI = i;
+            threadPool.submit(() -> {
+                log.info("第" + finalI + "个POST请求开始...");
+                try {
+                    ResponseEntity<String> response = postRequest();
+                    System.out.println(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                log.info("第" + finalI + "个POST请求结束...");
+            });
         }
+        threadPool.shutdown();
     }
 
-    public ResponseEntity<String> postRequest(int i) throws Exception {
+    public ResponseEntity<String> postRequest() throws Exception {
         ResponseEntity<String> response;
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        MultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
-        params.add("requestNumber", i);
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(params,
-                headers);
-        response = restTemplate.exchange(postRequestUrl, HttpMethod.POST, requestEntity, String.class);
+        Map<String, Object> body = null;
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "application/json");
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            response = restTemplate.exchange(postRequestUrl, HttpMethod.POST, request, String.class);
+        } catch (RestClientException e) {
+            throw new Exception("服务调用异常：" + e.getMessage());
+        }
 
         if (response.getStatusCode() != HttpStatus.OK) {
-            throw new Exception("调用返回 HTTP status: " + response.getStatusCode());
-        }
-        @SuppressWarnings("unchecked")
-        Map<String, Object> responseMap = JSON.parseObject(response.getBody(), Map.class);
-        if (MapUtils.isEmpty(responseMap)) {
-            throw new Exception("调用返回 body is null!");
-        }
-
-        if (MapUtils.getInteger(responseMap, "code") != 200) {
-            throw new Exception("调用返回 失败!");
+            throw new Exception("调用返回 HTTP status " + response.getStatusCode());
         }
 
         return response;
