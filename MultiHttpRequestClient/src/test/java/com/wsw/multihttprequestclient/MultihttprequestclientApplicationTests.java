@@ -12,7 +12,7 @@ class MultihttprequestclientApplicationTests {
 
     @Test
     void contextLoads() throws Exception {
-        multiHttpRequestClient.asyncSendPostRequest();
+        multiHttpRequestClient.asyncSendPostRequest(10);
         //multiHttpRequestClient.postRequest(1);
     }
 

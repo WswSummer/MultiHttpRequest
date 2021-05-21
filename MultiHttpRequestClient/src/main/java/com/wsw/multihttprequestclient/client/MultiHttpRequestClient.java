@@ -1,5 +1,6 @@
 package com.wsw.multihttprequestclient.client;
 
+import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -10,8 +11,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,26 +30,33 @@ public class MultiHttpRequestClient {
     @Resource
     private RestTemplate restTemplate;
 
-    public void asyncSendPostRequest() {
-        ExecutorService threadPool = Executors.newFixedThreadPool(5);
-        for (int i = 0; i < 5; i++) {
+    public void asyncSendPostRequest(int n) throws Exception {
+        CountDownLatch latch = new CountDownLatch(n);
+        ExecutorService threadPool = Executors.newFixedThreadPool(8);
+        for (int i = 1; i <= n; i++) {
             int finalI = i;
-            threadPool.submit(() -> {
+            threadPool.execute(() -> {
                 try {
-                    log.info("第" + finalI + "个POST请求开始...");
-                    ResponseEntity<String> response = postRequest(finalI);
-                    System.out.println(response);
-                    log.info("第" + finalI + "个POST请求结束...");
-                    Thread.sleep(10000);
+                    long startRequestTime = System.currentTimeMillis();
+                    Map<String, Object> responseMap = postRequest(finalI);
+                    long requestTime = System.currentTimeMillis() - startRequestTime;
+                    // 在各自规定时间内获得response 第一个request 在发出去的一秒内收到，第二个request在两秒内… 第n个request在n秒内收到
+                    if (requestTime <= finalI * 1000L) {
+                        log.info(Thread.currentThread().getName() + " -> 第" + finalI + "个POST请求成功, 请求返回数据：" + responseMap);
+                    } else {
+                        log.info(Thread.currentThread().getName() + " -> 第" + finalI + "个POST请求失败! 失败原因：未能在规定时间内返回respose!");
+                    }
+                    latch.countDown();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             });
         }
+        latch.await();
         threadPool.shutdown();
     }
 
-    public ResponseEntity<String> postRequest(int number) throws Exception {
+    public Map<String, Object> postRequest(int number) throws Exception {
         ResponseEntity<String> response;
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -65,6 +73,9 @@ public class MultiHttpRequestClient {
             throw new Exception("调用返回 HTTP status " + response.getStatusCode());
         }
 
-        return response;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> responseMap = JSON.parseObject(response.getBody(), Map.class);
+
+        return responseMap;
     }
 }
