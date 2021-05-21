@@ -1,7 +1,6 @@
 package com.wsw.multihttprequestclient.client;
 
 import com.alibaba.fastjson.JSON;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +12,8 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +37,9 @@ public class MultiHttpRequestClient {
     public void asyncSendPostRequest(int n) throws Exception {
         CountDownLatch latch = new CountDownLatch(n);
         ExecutorService threadPool = Executors.newFixedThreadPool(8);
+        Map<Integer, Object> failMsgMap = new HashMap<>();
+
+        log.info("并发请求开始!");
         for (int i = 1; i <= n; i++) {
             int finalI = i;
             threadPool.execute(() -> {
@@ -45,9 +49,11 @@ public class MultiHttpRequestClient {
                     long requestTime = System.currentTimeMillis() - startRequestTime;
                     // 在各自规定时间内获得response 第一个request 在发出去的一秒内收到，第二个request在两秒内… 第n个request在n秒内收到
                     if (requestTime <= finalI * 1000L) {
-                        log.info(Thread.currentThread().getName() + " -> 第" + finalI + "个POST请求成功, 请求返回数据：" + responseMap);
+                        log.info(Thread.currentThread().getName() + " -> 第" + finalI + "个POST请求成功, 请求返回数据: " + responseMap);
                     } else {
-                        log.info(Thread.currentThread().getName() + " -> 第" + finalI + "个POST请求失败! 失败原因：未能在规定时间内返回respose!");
+                        String failMsg = "第" + finalI + "个POST请求失败! 失败原因: 未能在规定时间内返回respose!";
+                        failMsgMap.put(finalI, failMsg);
+                        log.info(Thread.currentThread().getName() + " -> " + failMsg);
                     }
                     latch.countDown();
                 } catch (Exception e) {
@@ -55,8 +61,18 @@ public class MultiHttpRequestClient {
                 }
             });
         }
+
         latch.await();
         threadPool.shutdown();
+
+        if (failMsgMap.size() == 0) {
+            log.info("并发请求结束! 请求结果: SUCCESS!");
+        } else {
+            log.info("并发请求结束! 请求结果: FAIL! 原因: ");
+            for (Object value : failMsgMap.values()) {
+                log.info((String) value);
+            }
+        }
     }
 
     public Map<String, Object> postRequest(int number) throws Exception {
@@ -69,7 +85,7 @@ public class MultiHttpRequestClient {
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(params, headers);
             response = restTemplate.exchange(postRequestUrl, HttpMethod.POST, requestEntity, String.class);
         } catch (RestClientException e) {
-            throw new Exception("服务调用异常：" + e.getMessage());
+            throw new Exception("服务调用异常: " + e.getMessage());
         }
 
         if (response.getStatusCode() != HttpStatus.OK) {
