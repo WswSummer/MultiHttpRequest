@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
  */
 @Component
 public class MultiHttpRequestClient {
+    private final int coreThreads = 8;
     private final Logger log = LoggerFactory.getLogger(MultiHttpRequestClient.class);
 
     @Value("${post.request.url}")
@@ -35,17 +36,18 @@ public class MultiHttpRequestClient {
     private RestTemplate restTemplate;
 
     public void asyncSendPostRequest(int n) throws Exception {
-        CountDownLatch latch = new CountDownLatch(n);
-        ExecutorService threadPool = Executors.newFixedThreadPool(8);
-        Map<Integer, Object> failMsgMap = new HashMap<>();
+        CountDownLatch latch = new CountDownLatch(n); // 协调多个线程之间的同步, 以免子线程执行过程中被主线程阻断
+        ExecutorService threadPool = Executors.newFixedThreadPool(8); // 固定大小线程池
+        Map<Integer, Object> failMsgMap = new HashMap<>(); // 请求失败信息
 
         log.info("并发请求开始!");
         for (int i = 1; i <= n; i++) {
             int finalI = i;
+            // 线程池执行
             threadPool.execute(() -> {
                 try {
                     long startRequestTime = System.currentTimeMillis();
-                    Map<String, Object> responseMap = postRequest(finalI);
+                    Map<String, Object> responseMap = postRequest(finalI); //发送请求
                     long requestTime = System.currentTimeMillis() - startRequestTime;
                     // 在各自规定时间内获得response 第一个request 在发出去的一秒内收到，第二个request在两秒内… 第n个request在n秒内收到
                     if (requestTime <= finalI * 1000L) {
@@ -75,6 +77,11 @@ public class MultiHttpRequestClient {
         }
     }
 
+    /**
+     * @description: POST请求
+     * @author: wangsongwen
+     * @date: 2021/5/21 17:02
+     **/
     public Map<String, Object> postRequest(int number) throws Exception {
         ResponseEntity<String> response;
         try {
