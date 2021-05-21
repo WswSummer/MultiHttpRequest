@@ -2,6 +2,8 @@ package com.wsw.multihttprequestclient.client;
 
 import com.alibaba.fastjson.JSON;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -21,9 +23,10 @@ import java.util.concurrent.Executors;
  * @Date: Created in 16:07 2021/5/20
  * @Description: 客户端---并行且异步发送n个Http Post请求
  */
-@Slf4j
 @Component
 public class MultiHttpRequestClient {
+    private final Logger log = LoggerFactory.getLogger(MultiHttpRequestClient.class);
+
     @Value("${post.request.url}")
     private String postRequestUrl;
 

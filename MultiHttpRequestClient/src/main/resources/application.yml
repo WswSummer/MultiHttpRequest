@@ -1,3 +1,7 @@
 post:
   request:
-    url: http://127.0.0.1:1998/wsw/hello
+    url: http://127.0.0.1:1998/wsw/hello # POST请求接口地址
+
+logging:
+  file:
+    name: requestClient.log # 日志文件名
